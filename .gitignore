@@ -1,0 +1,12 @@
+.DS_Store
+/cloudsim-plus/target/
+/cloudsim-plus-examples/target/
+/cloudsim-plus/nbproject/
+/distribution/target/
+/target/
+
+#Ignore IntelliJ IDEA project files
+.idea/
+*.iml
+*.ipr
+*.iws
