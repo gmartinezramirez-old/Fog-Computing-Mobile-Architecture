@@ -1,6 +1,7 @@
 # Master Thesis
 
 <a id="top"></a>
+[![Build Status](https://travis-ci.org/gmartinezramirez/Master-Thesis-Code.svg?branch=master)](https://travis-ci.org/gmartinezramirez/Master-Thesis-Code) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/ca35535fd97d4ad982d3cb22d4ed14ef)](https://www.codacy.com/app/gonzalo-martinez-ra/Master-Thesis-Code?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=gmartinezramirez/Master-Thesis-Code&amp;utm_campaign=Badge_Grade)
 
 <p align="center">
 <b><a href="#overview">Overview</a></b>
