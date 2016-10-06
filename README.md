@@ -79,7 +79,7 @@ The easier way to use the project is relying on some IDE such as [NetBeans](http
 or [IntelliJ IDEA](http://jetbrains.com/idea/).
 Below are the steps to start using the project:
 
-- Download the project sources using the download button on top of this page or clone it using `git clone https://github.com/manoelcampos/cloudsim-plus.git` 
+- Download the project sources using the download button on top of this page or clone it using `git clone https://github.com/gmartinezramirez/Master-Thesis-Code.git` 
 at a terminal.
 - Open/import the project in your IDE:
     - For NetBeans, just use the "Open project" menu and select the directory where the project was downloaded/cloned.
