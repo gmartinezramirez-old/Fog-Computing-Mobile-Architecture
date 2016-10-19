@@ -8,13 +8,14 @@
 package org.cloudbus.cloudsim.schedulers;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
-import org.cloudbus.cloudsim.Cloudlet;
+import java.util.stream.Collectors;
+
+import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.Cloudlet.Status;
-import org.cloudbus.cloudsim.Consts;
-import org.cloudbus.cloudsim.CloudletExecutionInfo;
-import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.listeners.VmToCloudletEventInfo;
 import org.cloudbus.cloudsim.resources.Processor;
@@ -52,30 +53,25 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
     /**
      * @see #getCloudletWaitingList()
      */
-    protected List<? extends CloudletExecutionInfo> cloudletWaitingList;
-
-    /**
-     * @see #getCloudletExecList()
-     */
-    protected List<? extends CloudletExecutionInfo> cloudletExecList;
+    private List<? extends CloudletExecutionInfo> cloudletWaitingList;
 
     /**
      * @see #getCloudletPausedList()
      */
-    protected List<? extends CloudletExecutionInfo> cloudletPausedList;
+    private List<? extends CloudletExecutionInfo> cloudletPausedList;
 
     /**
      * @see #getCloudletFinishedList()
      */
-    protected List<? extends CloudletExecutionInfo> cloudletFinishedList;
+    private List<? extends CloudletExecutionInfo> cloudletFinishedList;
 
     /**
      * @see #getCloudletFailedList()
      */
-    protected List<? extends CloudletExecutionInfo> cloudletFailedList;
-    
+    private List<? extends CloudletExecutionInfo> cloudletFailedList;
+
     /**
-     * @see #getVm() 
+     * @see #getVm()
      */
     private Vm vm;
 
@@ -88,8 +84,8 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
      */
     public CloudletSchedulerAbstract() {
         setPreviousTime(0.0);
+	    vm = Vm.NULL;
         cloudletWaitingList = new ArrayList<>();
-        cloudletExecList = new ArrayList<>();
         cloudletPausedList = new ArrayList<>();
         cloudletFinishedList = new ArrayList<>();
         cloudletFailedList = new ArrayList<>();
@@ -133,46 +129,10 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
         return (List<T>) cloudletWaitingList;
     }
 
-    /**
-     * Sets the list of cloudlet waiting to be executed on the VM.
-     *
-     * @param <T> the generic type
-     * @param cloudletWaitingList the cloudlet waiting list
-     */
-    protected <T extends CloudletExecutionInfo> void setCloudletWaitingList(List<T> cloudletWaitingList) {
-        this.cloudletWaitingList = cloudletWaitingList;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T extends CloudletExecutionInfo> List<T> getCloudletExecList() {
-        return (List<T>) cloudletExecList;
-    }
-
-    /**
-     * Sets the list of cloudlets being executed on the VM.
-     *
-     * @param <T> the generic type
-     * @param cloudletExecList the new cloudlet exec list
-     */
-    protected <T extends CloudletExecutionInfo> void setCloudletExecList(List<T> cloudletExecList) {
-        this.cloudletExecList = cloudletExecList;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public <T extends CloudletExecutionInfo> List<T> getCloudletPausedList() {
         return (List<T>) cloudletPausedList;
-    }
-
-    /**
-     * Sets the list of paused cloudlets.
-     *
-     * @param <T> the generic type
-     * @param cloudletPausedList the new cloudlet paused list
-     */
-    protected <T extends CloudletExecutionInfo> void setCloudletPausedList(List<T> cloudletPausedList) {
-        this.cloudletPausedList = cloudletPausedList;
     }
 
     @SuppressWarnings("unchecked")
@@ -181,38 +141,45 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
         return (List<T>) cloudletFinishedList;
     }
 
-    /**
-     * Sets the list of finished cloudlets.
-     *
-     * @param <T> the generic type
-     * @param cloudletFinishedList the new cloudlet finished list
-     */
-    protected <T extends CloudletExecutionInfo> void setCloudletFinishedList(List<T> cloudletFinishedList) {
-        this.cloudletFinishedList = cloudletFinishedList;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public <T extends CloudletExecutionInfo> List<T> getCloudletFailedList() {
         return (List<T>) cloudletFailedList;
     }
 
-    /**
-     * Sets the list of failed cloudlets.
-     *
-     * @param <T> the generic type
-     * @param cloudletFailedList the new cloudlet failed list.
-     */
-    protected <T extends CloudletExecutionInfo> void setCloudletFailedList(List<T> cloudletFailedList) {
-        this.cloudletFailedList = cloudletFailedList;
-    }
-    
     @Override
     public double cloudletSubmit(Cloudlet cloudlet) {
         return cloudletSubmit(cloudlet, 0.0);
-    }    
+    }
 
-    @Override
+	@Override
+	public double cloudletSubmit(Cloudlet cl, double fileTransferTime) {
+		//Log.println(Log.Level.INFO, getClass(), CloudSim.clock(), "Cloudlet %d file transfer time: %f", cl.getId(), fileTransferTime);
+		CloudletExecutionInfo rcl = new CloudletExecutionInfo(cl);
+		if(canAddCloudletToExecutionList(cl)){
+			rcl.setCloudletStatus(Cloudlet.Status.INEXEC);
+			rcl.setFileTransferTime(fileTransferTime);
+			rcl.setLastProcessingTime(CloudSim.clock());
+			getCloudletExecList().add(rcl);
+			return fileTransferTime + (cl.getCloudletLength() / getProcessor().getCapacity());
+		}
+
+		// no enough free PEs: go to the waiting queue
+		moveCloudletToWaitingList(rcl);
+		return 0.0;
+	}
+
+	/**
+	 * Moves a paused cloudlet to the waiting list.
+	 *
+	 * @param c the cloudlet to be moved
+	 */
+	protected void moveCloudletToWaitingList(CloudletExecutionInfo c) {
+		c.setCloudletStatus(Cloudlet.Status.QUEUED);
+		getCloudletWaitingList().add(c);
+	}
+
+	@Override
     public double getTotalUtilizationOfCpu(double time) {
         return getCloudletExecList().stream()
                 .mapToDouble(rcl -> rcl.getCloudlet().getUtilizationOfCpu(time))
@@ -221,9 +188,9 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
 
     @Override
     public boolean hasFinishedCloudlets() {
-        return getCloudletFinishedList().size() > 0;
+        return !getCloudletFinishedList().isEmpty();
     }
-    
+
     @Override
     public int runningCloudletsNumber() {
         return getCloudletExecList().size();
@@ -231,113 +198,137 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
 
     @Override
     public Cloudlet getNextFinishedCloudlet() {
-        if (getCloudletFinishedList().size() > 0) {
-            return getCloudletFinishedList().remove(0).getCloudlet();
+        if (getCloudletFinishedList().isEmpty()) {
+	        return Cloudlet.NULL;
         }
-        return null;
+
+	    return getCloudletFinishedList().remove(0).getCloudlet();
     }
-    
+
     /**
-     * Returns the first cloudlet to migrate to another VM.
+     * Returns the first cloudlet in the execution list to migrate to another VM,
+     * removing it from the list.
      *
-     * @return the first running cloudlet
+     * @return the first executing cloudlet or {@link Cloudlet#NULL} if the executing list is empty
      * @pre $none
      * @post $none
      */
     @Override
-    public Cloudlet migrateCloudlet() {
+    public Cloudlet getCloudletToMigrate() {
         if (getCloudletExecList().isEmpty()) {
             return Cloudlet.NULL;
         }
 
-        CloudletExecutionInfo rcl = getCloudletExecList().remove(0);
+        CloudletExecutionInfo rcl = getCloudletExecList().stream().findFirst().get();
+	    getCloudletExecList().remove(rcl);
         rcl.finalizeCloudlet();
-        Cloudlet cl = rcl.getCloudlet();
-        return cl;
+
+        return rcl.getCloudlet();
     }
-    
+
     @Override
     public int getCloudletStatus(int cloudletId) {
-        for (CloudletExecutionInfo rcl : getCloudletExecList()) {
-            if (rcl.getCloudletId() == cloudletId) {
-                return rcl.getCloudletStatus().ordinal();
-            }
-        }
+	    Optional<CloudletExecutionInfo> optional = findCloudletInAllLists(cloudletId);
 
-        for (CloudletExecutionInfo rcl : getCloudletPausedList()) {
-            if (rcl.getCloudletId() == cloudletId) {
-                return rcl.getCloudletStatus().ordinal();
-            }
-        }
-
-        for (CloudletExecutionInfo rcl : getCloudletWaitingList()) {
-            if (rcl.getCloudletId() == cloudletId) {
-                return rcl.getCloudletStatus().ordinal();
-            }
+	    if (optional.isPresent()) {
+            return optional.get().getCloudletStatus().ordinal();
         }
 
         return -1;
     }
-    
-    @Override
+
+	/**
+	 * Search for a Cloudlet into all Cloudlet lists.
+	 *
+	 * @param cloudletId the id of the Cloudlet to search for
+	 * @return an {@link Optional} value that is able to indicate if the Cloudlet was found or not
+	 */
+	protected Optional<CloudletExecutionInfo> findCloudletInAllLists(double cloudletId) {
+		Collection[] allLists =
+			new Collection[]{getCloudletExecList(), getCloudletPausedList(), getCloudletWaitingList(),
+				getCloudletFinishedList(), getCloudletFailedList()};
+
+		for(Collection list: allLists){
+			Optional<CloudletExecutionInfo> optional = findCloudletInList(cloudletId, list);
+			if(optional.isPresent())
+				return optional;
+		}
+
+		return Optional.empty();
+	}
+
+	/**
+	 * Search for a Cloudlet into a given list.
+	 *
+	 * @param cloudletId the id of the Cloudlet to search for
+	 * @param list the list to search the Cloudlet into
+	 * @return an {@link Optional} value that is able to indicate if the Cloudlet was found or not
+	 */
+	protected Optional<CloudletExecutionInfo> findCloudletInList(double cloudletId, Collection<CloudletExecutionInfo> list) {
+		return list.stream()
+			.filter(rcl -> rcl.getCloudletId() == cloudletId)
+			.findFirst();
+	}
+
+	@Override
     public void cloudletFinish(CloudletExecutionInfo rcl) {
         rcl.setCloudletStatus(Cloudlet.Status.SUCCESS);
         rcl.finalizeCloudlet();
         getCloudletFinishedList().add(rcl);
-    }    
-    
+    }
+
     @Override
     public boolean cloudletPause(int cloudletId) {
         if(changeStatusOfCloudletIntoList(
-                getCloudletExecList(), cloudletId, 
+                getCloudletExecList(), cloudletId,
                 c -> changeStatusOfCloudlet(c, Status.INEXEC, Status.PAUSED)) != Cloudlet.NULL){
             return true;
         }
-        
+
         if(changeStatusOfCloudletIntoList(
-                getCloudletWaitingList(), cloudletId, 
+                getCloudletWaitingList(), cloudletId,
                 c -> changeStatusOfCloudlet(c, Status.READY, Status.PAUSED)) != Cloudlet.NULL){
             return true;
         }
 
         return false;
-    }    
-    
+    }
+
     @Override
     public Cloudlet cloudletCancel(int cloudletId) {
         Cloudlet cloudlet;
         cloudlet = changeStatusOfCloudletIntoList(getCloudletFinishedList(), cloudletId, (c)->{});
         if(cloudlet != Cloudlet.NULL)
             return cloudlet;
-        
+
         cloudlet = changeStatusOfCloudletIntoList(
-                getCloudletExecList(), cloudletId, 
+                getCloudletExecList(), cloudletId,
                 c -> changeStatusOfCloudlet(c, Status.INEXEC, Status.CANCELED));
         if(cloudlet != Cloudlet.NULL)
             return cloudlet;
 
         cloudlet = changeStatusOfCloudletIntoList(
-                getCloudletPausedList(), cloudletId, 
+                getCloudletPausedList(), cloudletId,
                 c -> changeStatusOfCloudlet(c, Status.PAUSED, Status.CANCELED));
         if(cloudlet != Cloudlet.NULL)
             return cloudlet;
 
         cloudlet = changeStatusOfCloudletIntoList(
-                getCloudletWaitingList(), cloudletId, 
+                getCloudletWaitingList(), cloudletId,
                 c -> changeStatusOfCloudlet(c, Status.READY, Status.CANCELED));
         if(cloudlet != Cloudlet.NULL)
             return cloudlet;
 
         return null;
     }
-    
+
     /**
      * Changes the status of a given cloudlet.
-     * 
+     *
      * @param cloudlet
      * @param currentStatus
-     * @param statusToSet 
-     * 
+     * @param statusToSet
+     *
      * @todo @author manoelcampos The parameter currentStatus only exists because apparently,
      * the cloudlet status is not being accordingly changed along
      * the simulation run.
@@ -351,95 +342,161 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
             case PAUSED: getCloudletPausedList().add(cloudlet); break;
         }
     }
-    
+
     /**
      * Search for a cloudlet into a given list in order to change its status.
      * @param cloudletList the list where to search the cloudlet
      * @param cloudletId the id of the cloudlet to have its status changed
-     * @param consumer The consumer that will apply the change in the 
+     * @param consumer the {@link Consumer} that will apply the change in the
      * status of the found cloudlet
      * @return the changed cloudlet or {@link Cloudlet#NULL} if not found
      * in the given list
      */
     private Cloudlet changeStatusOfCloudletIntoList(
-            List<CloudletExecutionInfo> cloudletList, int cloudletId,
-            Consumer<CloudletExecutionInfo> consumer) {
-        for (int i = 0; i < cloudletList.size(); i++) {
-            CloudletExecutionInfo rcl = cloudletList.get(i);
-            if (rcl.getCloudletId() == cloudletId) {
-                cloudletList.remove(rcl);
-                if(consumer != null){
-                    consumer.accept(rcl);
-                }
-                return rcl.getCloudlet();
-            }
+	    Collection<CloudletExecutionInfo> cloudletList, int cloudletId,
+	    Consumer<CloudletExecutionInfo> consumer) {
+
+	    Optional<CloudletExecutionInfo> optional = cloudletList.stream()
+		    .filter(c->c.getCloudlet().getId() == cloudletId)
+		    .findFirst();
+
+        if (!optional.isPresent()) {
+	        return Cloudlet.NULL;
         }
-        
-        return Cloudlet.NULL;
-    }      
-    
+
+        cloudletList.remove(optional.get());
+        consumer.accept(optional.get());
+        return optional.get().getCloudlet();
+    }
+
+	@Override
+	public double updateVmProcessing(double currentTime, List<Double> mipsShare) {
+		setCurrentMipsShare(mipsShare);
+		// no more cloudlets in this scheduler
+		if (getCloudletExecList().isEmpty() && getCloudletWaitingList().isEmpty()) {
+			setPreviousTime(currentTime);
+			return Double.MAX_VALUE;
+		}
+
+		updateCloudletsProcessing(currentTime);
+
+		final int finished = removeFinishedCloudletsFromExecutionList();
+		startNewCloudletsFromWaitingList(finished);
+
+		double nextEvent = getEstimatedFinishTimeOfSoonerFinishingCloudlet(currentTime);
+		setPreviousTime(currentTime);
+		return nextEvent;
+	}
+
     /**
-     * Updates the processing of all cloudlets 
-     * of the Vm using this scheduler that are in the 
+     * Updates the processing of all cloudlets
+     * of the Vm using this scheduler that are in the
      * {@link #getCloudletExecList() cloudlet execution list}.
      * @param currentTime current simulation time
      */
     private void updateCloudletsProcessing(double currentTime) {
         getCloudletExecList().forEach(rcl -> updateCloudletProcessing(rcl, currentTime));
     }
-    
+
     @Override
     public void updateCloudletProcessing(CloudletExecutionInfo rcl, double currentTime) {
-        long numberOfInstructions = cloudletExecutionTotalLengthForElapsedTime(rcl, currentTime);
-        rcl.updateCloudletFinishedSoFar(numberOfInstructions);
-        
+        long numberExecutedInstructions = cloudletExecutionTotalLengthForElapsedTime(rcl, currentTime);
+        rcl.updateCloudletFinishedSoFar(numberExecutedInstructions);
+	    if(numberExecutedInstructions > 0)
+	    	rcl.setLastProcessingTime(currentTime);
+
         Cloudlet cloudlet = rcl.getCloudlet();
         VmToCloudletEventInfo evt = new VmToCloudletEventInfo(currentTime, vm, cloudlet);
         cloudlet.getOnUpdateCloudletProcessingListener().update(evt);
     }
 
     /**
-     * Computes the total length of a given cloudlet (across all PEs), 
-     * in number of Instructions (I), that has been executed since the 
+     * Computes the total length of a given cloudlet (across all PEs),
+     * in number of Instructions (I), that has been executed since the
      * last time cloudlet processing was updated.
      * This length is considered as the sum of executed length in each Cloudlet PE.
-     * 
+     *
+     * <p>This method considers the delay for actually starting
+     * the Cloudlet execution due to the time to transfer
+     * {@link Cloudlet#getRequiredFiles() required Cloudlet files}
+     * from the Datacenter storage (such as a SAN) to the Vm running
+     * the Cloudlet.</p>
+     *
+     * <p>During this transfer time, the method will always return 0 to indicate
+     * that the Cloudlet was not processed in fact, it is just waiting
+     * the required files to be acquired. The required time
+     * to transfer the files is stored in the {@link CloudletExecutionInfo#getFileTransferTime()}
+     * attribute and is set when the Cloudlet is submitted to the scheduler.</p>
+     *
      * @param rcl
      * @param currentTime current simulation time
      * @return the total length across all PEs, in number of Instructions (I),
      * since the last time cloudlet was processed.
-     * 
-     * @see #updateCloudletsProcessing(double, java.util.List) 
-     * 
-     * @todo @author manoelcampos Shouldn't the processing update of a cloudlet 
+     *
+     * @see #updateCloudletsProcessing(double)
+     *
+     * @todo @author manoelcampos Shouldn't the processing update of a cloudlet
      * consider the cloudlet's UtilizationModel of CPU?
-     * Usually the utilization model used is the UtilizationModelFull,
+     * Commonly the utilization model used is the UtilizationModelFull,
      * that uses the CPU 100% all the available time.
      * However, if were have an utilization model that uses just 10% of
      * CPU, the cloudlet will last 10 times more to finish.
      * It has to be checked how the MigrationExample1 works,
      * once it uses the UtilizationModelArithmeticProgression
      * instead of the UtilizationModelFull.
+     *
+     * @todo @author manoelcampos This method is being called 2 times more
+     * than required. Despite it is not causing any apparent issue, it has
+     * to be investigated. For instance, for simulation time 2, with 2 cloudlets,
+     * the method is being called 4 times instead of just 2 (1 for each cloudlet
+     * for that time).
      */
     protected long cloudletExecutionTotalLengthForElapsedTime(CloudletExecutionInfo rcl, double currentTime) {
-        return (long)(processor.getAvailableMipsByPe() * rcl.getNumberOfPes() * timeSpan(currentTime) * Consts.MILLION);
+	    /* The time the Cloudlet spent executing in fact, since the last time Cloudlet update was
+	     * called by the scheduler. If it is zero, indicates that the Cloudlet didn't use
+	     * the CPU in this time span, because it is waiting for its required files
+	     * to be achired from the Datacenter storage.
+	     * */
+	    double actualProcessingTime = 0;
+	    if(hasCloudletFileTransferTimePassed(rcl, currentTime))
+	        actualProcessingTime = timeSpan(currentTime);
+
+	    double executedInstructions =
+		    (processor.getAvailableMipsByPe() * rcl.getNumberOfPes() * actualProcessingTime * Consts.MILLION);
+	    Log.println(Log.Level.DEBUG, getClass(), currentTime,
+		    "Cloudlet: %d Processing time: %.2f Last processed time: %.2f Actual process time: %.2f MI: %.0f",
+		    rcl.getCloudletId(), actualProcessingTime, rcl.getLastProcessingTime(), actualProcessingTime, executedInstructions/Consts.MILLION);
+
+	    return (long)executedInstructions;
     }
 
-    /**
+	/**
+	 * Checks if the time to transfer the files required by a Cloudlet to execute
+	 * has already passed, in order to start executing the Cloudlet in fact.
+	 *
+	 * @param rcl Cloudlet to check if the time to transfer the files has passed
+	 * @param currentTime the current simulation time
+	 * @return true if the time to transfer the files has passed, false otherwise
+	 */
+	private boolean hasCloudletFileTransferTimePassed(CloudletExecutionInfo rcl, double currentTime) {
+		return currentTime - rcl.getLastProcessingTime() > rcl.getFileTransferTime() || rcl.getCloudlet().getCloudletFinishedSoFar() > 0;
+	}
+
+	/**
      * Computes the time span between the current simulation time
      * and the last time the scheduler updated the processing
      * of it's managed cloudlets.
      * The method manages to correct precision issues
      * of double values math operations.
      * @param currentTime the current simulation time
-     * @return 
+     * @return
      */
     protected double timeSpan(double currentTime) {
         return Math.floor(currentTime) - Math.floor(getPreviousTime());
     }
 
      /**
-     * Gets a {@link Processor} object from a list of MIPS capacity available 
+     * Gets a {@link Processor} object from a list of MIPS capacity available
      * for the scheduler.
      *
      * @param mipsShare list with MIPS share of each PE available to the scheduler
@@ -447,124 +504,137 @@ public abstract class CloudletSchedulerAbstract implements CloudletScheduler {
      */
     /*protected Processor getProcessor(List<Double> mipsShare) {
         return Processor.fromMipsList(mipsShare);
-    }*/ 
-    
+    }*/
+
     /**
-     * Removes finished cloudlets from the 
+     * Removes finished cloudlets from the
      * {@link #getCloudletExecList() list of cloudlets to execute}.
-     * 
-     * @return the number of finished cloudlets removed from the 
+     *
+     * @return the number of finished cloudlets removed from the
      * {@link #getCloudletExecList() execution list}
      */
     protected int removeFinishedCloudletsFromExecutionList() {
-        List<CloudletExecutionInfo> toRemove = new ArrayList<>();
-        getCloudletExecList().forEach(rcl -> {
-            if(checkFinishedCloudlet(rcl))
-                toRemove.add(rcl);
-        });
+        List<CloudletExecutionInfo> toRemove =
+	        getCloudletExecList().stream()
+		        .filter(c->c.getCloudlet().isFinished())
+		        .collect(Collectors.toList());
+
+	    toRemove.stream().forEach(this::setFinishTimeIfCloudletIsFinished);
         getCloudletExecList().removeAll(toRemove);
-        
+
         return toRemove.size();
-    }    
+    }
 
     /**
-     * Checks if a specific finished cloudlet from the 
+     * Sets its finishe time if a specific finished cloudlet from the
      * {@link #getCloudletExecList() list of cloudlets to execute}
-     * has finished.
-     * 
-     * @param rcl the cloudlet to check if has finished
-     * @return true if the cloudlet has finished, false otherwise
+     * is finished.
+     *
+     * @param rcl the cloudlet to set the finish time
+     * @return true if the cloudlet is finished (indicating the finish time was set), false otherwise
      */
-    protected boolean checkFinishedCloudlet(CloudletExecutionInfo rcl) {
+    protected boolean setFinishTimeIfCloudletIsFinished(CloudletExecutionInfo rcl) {
+	    final double clock = CloudSim.clock();
         if (rcl.getCloudlet().isFinished()) {
-            rcl.setFinishTime(CloudSim.clock());
+	        //Log.println(Log.Level.INFO, getClass(), clock, "Start Time: %f Transfer Time: %f", rcl.getExecStartTime(), rcl.getFileTransferTime());
+            rcl.setFinishTime(clock);
             cloudletFinish(rcl);
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
-     * Gets the estimated finish time of the cloudlet that is expected to 
+     * Gets the estimated finish time of the Cloudlet that is expected to
      * finish executing sooner than all other ones that are executing
      * on the VM using this scheduler.
-     * 
-     * @param currentTime
-     * @return 
+     *
+     * @param currentTime current simulation time
+     * @return the estimated finish time of sooner finishing cloudlet
      */
     protected double getEstimatedFinishTimeOfSoonerFinishingCloudlet(double currentTime) {
         double nextEvent = Double.MAX_VALUE;
         for (CloudletExecutionInfo rcl : getCloudletExecList()) {
-            double estimatedFinishTime = 
+            double estimatedFinishTime =
                     getEstimatedFinishTimeOfCloudlet(rcl, currentTime);
 
             if (estimatedFinishTime < nextEvent) {
                 nextEvent = estimatedFinishTime;
             }
         }
+
         return nextEvent;
     }
-    
+
     /**
      * Gets the estimated time when a given cloudlet is supposed to finish executing.
-     * @param rcl
-     * @param currentTime
-     * @return 
+     * It considers the amount of Vm PES and the sum of PEs required by all VMs running
+     * inside the VM.
+     *
+     * @param rcl cloudlet to get the estimated finish time
+     * @param currentTime current simulation time
+     * @return the estimated finish time of the given cloudlet
      */
     protected double getEstimatedFinishTimeOfCloudlet(CloudletExecutionInfo rcl, double currentTime) {
-        double estimatedFinishTime = currentTime
-                + (rcl.getRemainingCloudletLength() / 
+        double estimatedFinishTime = currentTime +
+                (rcl.getRemainingCloudletLength() /
                 (processor.getAvailableMipsByPe() * rcl.getNumberOfPes()));
+
         if (estimatedFinishTime - currentTime < CloudSim.getMinTimeBetweenEvents()) {
             estimatedFinishTime = currentTime + CloudSim.getMinTimeBetweenEvents();
         }
-        return estimatedFinishTime;
+
+
+	    return estimatedFinishTime;
+        //return (rcl.getRemainingCloudletLength() == 0 ? estimatedFinishTime+rcl.getFileTransferTime() : estimatedFinishTime);
     }
 
-    @Override
-    public double updateVmProcessing(double currentTime, List<Double> mipsShare) {
-        setCurrentMipsShare(mipsShare);
-        // no more cloudlets in this scheduler
-        if (getCloudletExecList().isEmpty() && getCloudletWaitingList().isEmpty()) {
-            setPreviousTime(currentTime);
-            return Double.MAX_VALUE;
-        }
 
-        updateCloudletsProcessing(currentTime);
-
-        final int finished = removeFinishedCloudletsFromExecutionList();
-        startNewCloudletsFromWaitingList(finished);
-
-        double nextEvent = getEstimatedFinishTimeOfSoonerFinishingCloudlet(currentTime);
-        setPreviousTime(currentTime);
-        return nextEvent;
-    }
-
+	/**
+	 * For each finished cloudlet, try to add a new one from the waiting list
+	 * to the execution list.
+	 *
+	 * @param numberOfFinishedCloudlets number of Cloudlets that have just finished.
+	 */
     private void startNewCloudletsFromWaitingList(int numberOfFinishedCloudlets) {
-        // for each finished cloudlet, add a new one from the waiting list
-        if (!getCloudletWaitingList().isEmpty()) {
-            for (int i = 0; i < numberOfFinishedCloudlets; i++) {
-                List<CloudletExecutionInfo> toRemove = new ArrayList<>();
-                for (CloudletExecutionInfo rcl : getCloudletWaitingList()) {
-                    if ((processor.getNumberOfPes() - usedPes) >= rcl.getNumberOfPes()) {
-                        rcl.setCloudletStatus(Cloudlet.Status.INEXEC);
-                        getCloudletExecList().add(rcl);
-                        usedPes += rcl.getNumberOfPes();
-                        toRemove.add(rcl);
-                        break;
-                    }
-                }
-                getCloudletWaitingList().removeAll(toRemove);
-            }
+        if (getCloudletWaitingList().isEmpty()) {
+	        return;
         }
-    }    
 
-    /**
+        for (int i = 0; i < numberOfFinishedCloudlets; i++) {
+	        Optional<CloudletExecutionInfo> optionalWaitingCl = findSuitableWaitingCloudletToStartExecuting();
+	        if(optionalWaitingCl.isPresent()) {
+		        getCloudletExecList().add(optionalWaitingCl.get());
+		        usedPes += optionalWaitingCl.get().getNumberOfPes();
+		        getCloudletWaitingList().remove(optionalWaitingCl.get());
+	        }
+        }
+    }
+
+	/**
+	 * Try to find the first Cloudlet in the waiting list that the number of
+	 * required PEs is not higher than the number of free PEs.
+	 *
+	 * @return an {@link Optional} that indicates if a Cloudlet with the required
+	 * conditions was found or not
+	 */
+	private Optional<CloudletExecutionInfo> findSuitableWaitingCloudletToStartExecuting() {
+		for (CloudletExecutionInfo cl : getCloudletWaitingList()) {
+		    if ((processor.getNumberOfPes() - usedPes) >= cl.getNumberOfPes()) {
+		        cl.setCloudletStatus(Status.INEXEC);
+		        return Optional.of(cl);
+		    }
+		}
+
+		return Optional.empty();
+	}
+
+	/**
      * Processor object created every time the processing of VMs is executed.
      * It represent the last CPU capacity assigned to the scheduler.
-     * @return 
-     * @see #updateVmProcessing(double, java.util.List) 
+     * @return
+     * @see #updateVmProcessing(double, java.util.List)
      */
     protected Processor getProcessor() {
         return processor;

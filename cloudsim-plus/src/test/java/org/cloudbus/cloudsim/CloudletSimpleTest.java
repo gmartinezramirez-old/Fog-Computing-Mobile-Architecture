@@ -87,7 +87,7 @@ public class CloudletSimpleTest {
         final double arrivalTime = 0.0, execStartTime = 10.0;
         final int datacenterId = 0;
         mockCloudSimClockAndGetEntityNameMethods(arrivalTime, datacenterId);
-        
+
         CloudletSimple cloudlet = createCloudlet();
         assertEquals(0, cloudlet.getWaitingTime(), 0);
         cloudlet.assignCloudletToDatacenter(datacenterId, 0);
@@ -101,12 +101,12 @@ public class CloudletSimpleTest {
         mockCloudSimClockAndGetEntityNameMethodsWithoutReplay(arrivalTime, datacenterId);
         PowerMock.replay(CloudSim.class);
     }
-    
+
     private void mockCloudSimClockAndGetEntityNameMethodsWithoutReplay(final double arrivalTime, final int datacenterId) {
         mockCloudSimClockWithoutCallingReplay(arrivalTime);
-        EasyMock.expect(CloudSim.getEntityName(datacenterId)).andReturn("datacenter" + datacenterId);        
+        EasyMock.expect(CloudSim.getEntityName(datacenterId)).andReturn("datacenter" + datacenterId);
     }
-    
+
     @Test
     public void testAssignCloudletToDataCenter_recodLogEnabledDatacenterNotAssigned() {
         final int datacenterId = 0;
@@ -221,10 +221,10 @@ public class CloudletSimpleTest {
     }
 
     @Test
-    public void testGetClassType() {
+    public void testGetPriority() {
         final int expected = 8;
-        cloudlet.setClassType(expected);
-        assertEquals(expected, cloudlet.getClassType(), 0);
+        cloudlet.setPriority(expected);
+        assertEquals(expected, cloudlet.getPriority(), 0);
     }
 
     @Test
@@ -370,8 +370,8 @@ public class CloudletSimpleTest {
     }
 
     private static CloudletSimple createCloudlet(final int id) {
-        final UtilizationModel cpuRamAndBwUtilizationModel = new UtilizationModelFull();
-        return createCloudlet(id, cpuRamAndBwUtilizationModel);
+        final UtilizationModel utilizationModel = new UtilizationModelFull();
+        return createCloudlet(id, utilizationModel);
     }
 
     private static CloudletSimple createCloudlet(
@@ -381,13 +381,29 @@ public class CloudletSimpleTest {
                 cpuRamAndBwUtilizationModel);
     }
 
-    private static CloudletSimple createCloudlet(final int id, 
+    private static CloudletSimple createCloudlet(final int id,
             UtilizationModel utilizationModelCPU,
             UtilizationModel utilizationModelRAM,
             UtilizationModel utilizationModelBW) {
+        return createCloudlet(
+                id, utilizationModelCPU, utilizationModelRAM, utilizationModelBW,
+                CLOUDLET_LENGTH, 1);
+    }
+
+    private static CloudletSimple createCloudlet(final int id,
+            UtilizationModel utilizationModelCPU,
+            UtilizationModel utilizationModelRAM,
+            UtilizationModel utilizationModelBW,
+            long length, int numberOfPes) {
         return new CloudletSimple(
-                id, CLOUDLET_LENGTH, 1, CLOUDLET_FILE_SIZE, CLOUDLET_OUTPUT_SIZE,
+                id, length, numberOfPes, CLOUDLET_FILE_SIZE, CLOUDLET_OUTPUT_SIZE,
                 utilizationModelCPU, utilizationModelRAM, utilizationModelBW);
+    }
+
+    public static CloudletSimple createCloudlet(
+            final int id, long length, int numberOfPes) {
+        final UtilizationModel utilizationModel = new UtilizationModelFull();
+        return createCloudlet(id, utilizationModel, utilizationModel, utilizationModel, length, numberOfPes);
     }
 
     @Test
@@ -529,21 +545,18 @@ public class CloudletSimpleTest {
     }
 
     @Test
-    public void testSetClassType() {
-        final int invalid0 = 0;
-        Assert.assertFalse(
-                "Cloudlet.setClassType should return false",
-                cloudlet.setClassType(invalid0));
+    public void testSetPriority() {
+        final int zero = 0;
+	    cloudlet.setPriority(zero);
+        Assert.assertEquals(zero, cloudlet.getPriority());
 
-        final int invalidNegative = -1;
-        Assert.assertFalse(
-                "Cloudlet.setClassType should return false",
-                cloudlet.setClassType(invalidNegative));
+        final int negative = -1;
+        cloudlet.setPriority(negative);
+	    Assert.assertEquals(negative, cloudlet.getPriority());
 
-        final int valid = 1;
-        Assert.assertTrue(
-                "Cloudlet.setClassType should return true",
-                cloudlet.setClassType(valid));
+        final int one = 1;
+        cloudlet.setPriority(one);
+	    Assert.assertEquals(one, cloudlet.getPriority());
     }
 
     @Test

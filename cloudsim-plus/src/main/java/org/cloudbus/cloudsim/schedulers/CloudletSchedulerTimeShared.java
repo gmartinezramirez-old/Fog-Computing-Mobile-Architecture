@@ -1,16 +1,17 @@
 /*
  * Title: CloudSim Toolkit Description: CloudSim (Cloud Simulation) Toolkit for Modeling and
  * Simulation of Clouds Licence: GPL - http://www.gnu.org/copyleft/gpl.html
- * 
+ *
  * Copyright (c) 2009-2012, The University of Melbourne, Australia
  */
 package org.cloudbus.cloudsim.schedulers;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
 import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.CloudletExecutionInfo;
 
+import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.core.CloudSim;
 
 /**
@@ -25,6 +26,10 @@ import org.cloudbus.cloudsim.core.CloudSim;
  * @since CloudSim Toolkit 1.0
  */
 public class CloudletSchedulerTimeShared extends CloudletSchedulerAbstract {
+	/**
+	 * @see #getCloudletExecList()
+	 */
+	private Collection<? extends CloudletExecutionInfo> cloudletExecList;
 
     /**
      * Creates a new CloudletSchedulerTimeShared object. This method must be
@@ -35,6 +40,7 @@ public class CloudletSchedulerTimeShared extends CloudletSchedulerAbstract {
      */
     public CloudletSchedulerTimeShared() {
         super();
+	    this.cloudletExecList = new ArrayList<>();
     }
 
     @Override
@@ -42,45 +48,63 @@ public class CloudletSchedulerTimeShared extends CloudletSchedulerAbstract {
         return super.updateVmProcessing(currentTime, mipsShare);
     }
 
-    @Override
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p><b>For time-shared schedulers, this list is always empty, once
+	 * the VM PEs are shared across all Cloudlets running inside a VM.
+	 * Each Cloudlet has the opportunity to use the PEs
+	 * for a given timeslice.</b></p>
+	 *
+	 * @param <T> {@inheritDoc}
+	 * @return {@inheritDoc}
+	 */
+	@Override
+	public <T extends CloudletExecutionInfo> List<T> getCloudletWaitingList() {
+		return super.getCloudletWaitingList();
+	}
+
+	@Override
     public double cloudletResume(int cloudletId) {
-        for (int i = 0; i < getCloudletPausedList().size(); i++) {
-            CloudletExecutionInfo rcl = getCloudletPausedList().get(i);
-            if (rcl.getCloudletId() == cloudletId) {
-                getCloudletPausedList().remove(rcl);
-                rcl.setCloudletStatus(Cloudlet.Status.INEXEC);
-                getCloudletExecList().add(rcl);
+	    Optional<CloudletExecutionInfo> optional =
+		    getCloudletPausedList().stream()
+		        .filter(c -> c.getCloudletId() == cloudletId)
+		        .findFirst();
 
-                // calculate the expected time for cloudlet completion
-                // first: how many PEs do we have?
-                double remainingLength = rcl.getRemainingCloudletLength();
-                double estimatedFinishTime = CloudSim.clock()
-                        + (remainingLength / (getProcessor().getCapacity() 
-                        * rcl.getNumberOfPes()));
-
-                return estimatedFinishTime;
-            }
+        if(!optional.isPresent()) {
+	        return 0.0;
         }
 
-        return 0.0;
-    }
-
-    @Override
-    public double cloudletSubmit(Cloudlet cloudlet, double fileTransferTime) {
-        CloudletExecutionInfo rcl = new CloudletExecutionInfo(cloudlet);
+        final CloudletExecutionInfo rcl = optional.get();
+        getCloudletPausedList().remove(rcl);
         rcl.setCloudletStatus(Cloudlet.Status.INEXEC);
         getCloudletExecList().add(rcl);
 
-        // use the current capacity to estimate the extra amount of
-        // time to file transferring. It must be added to the cloudlet length
-        double extraSize = getProcessor().getCapacity() * fileTransferTime;
-        long length = (long) (cloudlet.getCloudletLength() + extraSize);
-        cloudlet.setCloudletLength(length);
+        // calculate the expected time for cloudlet completion
+        // first: how many PEs do we have?
+        double remainingLength = rcl.getRemainingCloudletLength();
+        double estimatedFinishTime = CloudSim.clock()
+                + (remainingLength / (getProcessor().getCapacity()
+                * rcl.getNumberOfPes()));
 
-        return cloudlet.getCloudletLength() / getProcessor().getCapacity();
+        return estimatedFinishTime;
     }
 
-    /**
+	/**
+	 * This time-shared scheduler shares the CPU time between all executing cloudlets,
+	 * giving the same CPU timeslice for each Cloudlet to execute.
+	 * It always allow any submitted Cloudlets to be imediately added to the execution list.
+	 * By this way, doesn't matter what Cloudlet is being submitted, it always will
+	 * include it in the execution list.
+	 *
+	 * @return always <b>true</b> to indicate that any submitted Cloudlet can be immediately added to the execution list
+	 */
+	@Override
+	public boolean canAddCloudletToExecutionList(Cloudlet cloudlet) {
+		return true;
+	}
+
+	/**
      * @todo If the method always return an empty list (that is created locally),
      * it doesn't make sense to exist. See other implementations such as
      * {@link CloudletSchedulerSpaceShared#getCurrentRequestedMips()}
@@ -88,16 +112,16 @@ public class CloudletSchedulerTimeShared extends CloudletSchedulerAbstract {
      */
     @Override
     public List<Double> getCurrentRequestedMips() {
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
 
     /**
      * {@inheritDoc}
      * It in fact doesn't consider the parameters given
-     * because in the Time Shared Scheduler, all the 
+     * because in the Time Shared Scheduler, all the
      * CPU capacity from the VM that is managed by the scheduler
      * is made available for all VMs.
-     * 
+     *
      * @param rcl {@inheritDoc}
      * @param mipsShare {@inheritDoc}
      * @return {@inheritDoc}
@@ -116,23 +140,29 @@ public class CloudletSchedulerTimeShared extends CloudletSchedulerAbstract {
     @Override
     public double getTotalCurrentRequestedMipsForCloudlet(CloudletExecutionInfo rcl, double time) {
         //@todo The method is not implemented, in fact
-        // TODO Auto-generated method stub
         return 0.0;
     }
 
     @Override
     public double getCurrentRequestedUtilizationOfRam() {
+	    final double time = CloudSim.clock();
         return getCloudletExecList().stream()
-                .mapToDouble(
-                        rcl -> rcl.getCloudlet().getUtilizationOfRam(CloudSim.clock()))
+                .mapToDouble(rcl -> rcl.getCloudlet().getUtilizationOfRam(time))
                 .sum();
     }
 
     @Override
     public double getCurrentRequestedUtilizationOfBw() {
+	    final double time = CloudSim.clock();
         return getCloudletExecList().stream()
-                .mapToDouble(
-                        rcl -> rcl.getCloudlet().getUtilizationOfBw(CloudSim.clock()))
+                .mapToDouble(rcl -> rcl.getCloudlet().getUtilizationOfBw(time))
                 .sum();
     }
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends CloudletExecutionInfo> Collection<T> getCloudletExecList() {
+		return (Collection<T>) cloudletExecList;
+	}
+
 }
