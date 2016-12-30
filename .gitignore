@@ -1,11 +1,8 @@
 .DS_Store
-/cloudsim-plus/target/
-/cloudsim-plus-examples/target/
-/cloudsim-plus-benchmarks/target/
-/cloudsim-plus-testbeds/target/
-/cloudsim-plus/nbproject/
-/distribution/target/
-/target/
+
+*.class
+
+
 dependency-reduced-pom.xml
 
 #Ignore IntelliJ IDEA project files
@@ -13,3 +10,6 @@ dependency-reduced-pom.xml
 *.iml
 *.ipr
 *.iws
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
