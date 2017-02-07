@@ -35,30 +35,35 @@ import org.fog.utils.FogUtils;
 import org.fog.utils.TimeKeeper;
 import org.fog.utils.distribution.DeterministicDistribution;
 
-public class twitterApp {
+/**
+ * Simulation setup for template
+ * @author Gonzalo Martinez
+ *
+ */
+public class templateAppLinealOperators {
 	static List<FogDevice> fogDevices = new ArrayList<FogDevice>();
 	static List<Sensor> sensors = new ArrayList<Sensor>();
 	static List<Actuator> actuators = new ArrayList<Actuator>();
-	static int numOfSTB = 3;
-	static int numOfDevicesPerSTB = 5;
+	static int numOfSTB = 4;
+	static int numOfDevicesPerSTB = 4;
 	
-	private static boolean isOnlyFog = false;
 	private static boolean isOnlyCloud = false;
 	private static boolean isOnlyEdge = false;
+	//private static boolean isOnlyCloud = true;
 	
 	public static void main(String[] args) {
 
-		Log.printLine("[Starting] Application simulation...");
+		Log.printLine("[Starting] Aplication...");
 
 		try {
 			Log.disable();
-			int num_user = 1; 
+			int num_user = 1; // number of cloud users
 			Calendar calendar = Calendar.getInstance();
 			boolean trace_flag = false; // mean trace events
 
 			CloudSim.init(num_user, calendar, trace_flag);
 
-			String appId = "twitterApp"; // identifier of the application
+			String appId = "sampleApp"; // identifier of the application
 			
 			FogBroker broker = new FogBroker("broker");
 			
@@ -72,13 +77,14 @@ public class twitterApp {
 			ModuleMapping moduleMapping = ModuleMapping.createModuleMapping(); // initializing a module mapping
 			for(FogDevice device : fogDevices){
 				if(device.getName().startsWith("m")){ // names of all Smart Cameras start with 'm' 
-					moduleMapping.addModuleToDevice("motion_detector", device.getName());  // fixing 1 instance of the Motion Detector module to each Smart Camera
+					moduleMapping.addModuleToDevice("operator_1", device.getName());  // fixing 1 instance of the Motion Detector module to each Smart Camera
 				}
 			}
-			moduleMapping.addModuleToDevice("user_interface", "cloud"); // fixing instances of User Interface module in the Cloud
-			if(isOnlyCloud) {
-				moduleMapping.addModuleToDevice("operator_1", "cloud"); // placing all instances of Object Detector module in the Cloud
-				moduleMapping.addModuleToDevice("object_tracker", "cloud"); // placing all instances of Object Tracker module in the Cloud
+			moduleMapping.addModuleToDevice("operator_3", "cloud"); // fixing instances of User Interface module in the Cloud
+			if(isOnlyCloud){
+				moduleMapping.addModuleToDevice("operator_1", "cloud");
+				moduleMapping.addModuleToDevice("operator_2", "cloud");
+				//moduleMapping.addModuleToDevice("operator_3", "cloud");
 			}
 			
 			controller = new Controller("master-controller", fogDevices, sensors, 
@@ -89,10 +95,11 @@ public class twitterApp {
 							:(new ModulePlacementEdgewards(fogDevices, sensors, actuators, application, moduleMapping)));
 			
 			TimeKeeper.getInstance().setSimulationStartTime(Calendar.getInstance().getTimeInMillis());
+			
 			CloudSim.startSimulation();
 			CloudSim.stopSimulation();
 
-			Log.printLine("[Finish] Application finished sucessfull!");
+			Log.printLine("[Finished]");
 		} catch (Exception e) {
 			e.printStackTrace();
 			Log.printLine("[Error] Unwanted errors happen");
@@ -105,12 +112,12 @@ public class twitterApp {
 	 * @param appId
 	 */
 	private static void createFogDevices(int userId, String appId) {
-		FogDevice cloud = createFogDevice("cloud", 44800, 40000, 100, 
-				10000, 0, 0.01, 16*103, 16*83.25);
+		FogDevice cloud = createFogDevice("cloud", 44800, 40000, 
+				100, 10000, 0, 0.01, 16*103, 16*83.25);
 		cloud.setParentId(-1);
 		fogDevices.add(cloud);
-		FogDevice proxy = createFogDevice("proxy-server", 2800, 4000, 10000, 
-				10000, 1, 0.0, 107.339, 83.4333);
+		FogDevice proxy = createFogDevice("proxy-server", 2800, 4000, 
+				10000, 10000, 1, 0.0, 107.339, 83.4333);
 		proxy.setParentId(cloud.getId());
 		proxy.setUplinkLatency(100); // latency of connection between proxy server and cloud is 100 ms
 		fogDevices.add(proxy);
@@ -120,32 +127,33 @@ public class twitterApp {
 	}
 
 	private static FogDevice addSTB(String id, int userId, String appId, int parentId){
-		FogDevice router = createFogDevice("d-"+id, 2800, 4000, 10000, 10000, 1, 0.0, 107.339, 83.4333);
-		fogDevices.add(router);
-		router.setUplinkLatency(2); // latency of connection between router and proxy server is 2 ms
+		FogDevice STB = createFogDevice("STB-"+id, 2800, 4000, 
+				10000, 10000, 1, 0.0, 107.339, 83.4333);
+		fogDevices.add(STB);
+		STB.setUplinkLatency(2); // latency of connection between STB and proxy server is 2 ms
 		for(int i=0;i<numOfDevicesPerSTB;i++){
 			String mobileId = id+"-"+i;
-			FogDevice camera = addDevices(mobileId, userId, appId, router.getId()); // adding a smart camera to the physical topology. Smart cameras have been modeled as fog devices as well.
-			camera.setUplinkLatency(2); // latency of connection between camera and router is 2 ms
-			fogDevices.add(camera);
+			FogDevice mobileDevice = addDevices(mobileId, userId, appId, STB.getId()); // adding a smart camera to the physical topology. Smart cameras have been modeled as fog devices as well.
+			mobileDevice.setUplinkLatency(2); // latency of connection between MobileDevices and STB is 2 ms
+			fogDevices.add(mobileDevice);
 		}
-		router.setParentId(parentId);
-		return router;
+		STB.setParentId(parentId);
+		return STB;
 	}
 	
 	private static FogDevice addDevices(String id, int userId, String appId, int parentId){
-		FogDevice camera = createFogDevice("m-"+id, 500, 1000, 10000, 10000, 3, 0, 87.53, 82.44);
-		camera.setParentId(parentId);
-		
-		Sensor sensor = new Sensor("sensor-"+id, "CAMERA", userId, appId, new DeterministicDistribution(5)); // inter-transmission time of camera (sensor) follows a deterministic distribution
+		FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
+				10000, 10000, 3, 0, 87.53, 82.44);
+		mobileDevice.setParentId(parentId);
+		Sensor sensor = new Sensor("sensor-"+id, "TUPLE_SENSOR_TO_OPERATOR_1", userId, appId, new DeterministicDistribution(5)); // inter-transmission time of mobileDevice (sensor) follows a deterministic distribution
 		sensors.add(sensor);
-		Actuator ptz = new Actuator("ptz-"+id, userId, appId, "PTZ_CONTROL");
-		actuators.add(ptz);
-		sensor.setGatewayDeviceId(camera.getId());
-		sensor.setLatency(1.0);  // latency of connection between camera (sensor) and the parent Smart Camera is 1 ms
-		ptz.setGatewayDeviceId(camera.getId());
-		ptz.setLatency(1.0);  // latency of connection between PTZ Control and the parent Smart Camera is 1 ms
-		return camera;
+		Actuator actuatorDevice = new Actuator("actuator-"+id, userId, appId, "ACTUATOR");
+		actuators.add(actuatorDevice);
+		sensor.setGatewayDeviceId(mobileDevice.getId());
+		sensor.setLatency(1.0);  // latency of connection between mobileDevice (sensor) and the parent Device is 1 ms
+		actuatorDevice.setGatewayDeviceId(mobileDevice.getId());
+		actuatorDevice.setLatency(1.0);  // latency of connection between Actuator and the parent Device is 1 ms
+		return mobileDevice;
 	}
 	
 	/**
@@ -162,7 +170,8 @@ public class twitterApp {
 	 * @return
 	 */
 	private static FogDevice createFogDevice(String nodeName, long mips,
-			int ram, long upBw, long downBw, int level, double ratePerMips, double busyPower, double idlePower) {
+			int ram, long upBw, long downBw, int level, double ratePerMips, 
+			double busyPower, double idlePower) {
 		
 		List<Pe> peList = new ArrayList<Pe>();
 
@@ -192,11 +201,9 @@ public class twitterApp {
 		double time_zone = 10.0; // time zone this resource located
 		double cost = 3.0; // the cost of using processing in this resource
 		double costPerMem = 0.05; // the cost of using memory in this resource
-		double costPerStorage = 0.001; // the cost of using storage in this
-										// resource
+		double costPerStorage = 0.001; // the cost of using storage in this resource
 		double costPerBw = 0.0; // the cost of using bw in this resource
-		LinkedList<Storage> storageList = new LinkedList<Storage>(); // we are not adding SAN
-													// devices by now
+		LinkedList<Storage> storageList = new LinkedList<Storage>(); // we are not adding SAN devices by now
 
 		FogDeviceCharacteristics characteristics = new FogDeviceCharacteristics(
 				arch, os, vmm, host, time_zone, cost, costPerMem,
@@ -224,34 +231,38 @@ public class twitterApp {
 	private static Application createApplication(String appId, int userId){
 		
 		Application application = Application.createApplication(appId, userId);
-
 		// Adding modules (vertices) to the application model (directed graph)
 		application.addAppModule("operator_1", 10);
-		application.addAppModule("motion_detector", 10);
-		application.addAppModule("object_tracker", 10);
-		application.addAppModule("user_interface", 10);
-		
-		
+		application.addAppModule("operator_2", 10);
+		application.addAppModule("operator_3", 10);
+				
 		// Connecting the application modules (vertices) in the application model (directed graph) with edges
-		application.addAppEdge("CAMERA", "motion_detector", 1000, 20000, "CAMERA", Tuple.UP, AppEdge.SENSOR); // adding edge from CAMERA (sensor) to Motion Detector module carrying tuples of type CAMERA
-		application.addAppEdge("motion_detector", "operator_1", 2000, 2000, "MOTION_VIDEO_STREAM", Tuple.UP, AppEdge.MODULE); // adding edge from Motion Detector to Object Detector module carrying tuples of type MOTION_VIDEO_STREAM
-		application.addAppEdge("operator_1", "user_interface", 500, 2000, "DETECTED_OBJECT", Tuple.UP, AppEdge.MODULE); // adding edge from Object Detector to User Interface module carrying tuples of type DETECTED_OBJECT
-		application.addAppEdge("operator_1", "object_tracker", 1000, 100, "OBJECT_LOCATION", Tuple.UP, AppEdge.MODULE); // adding edge from Object Detector to Object Tracker module carrying tuples of type OBJECT_LOCATION
-		application.addAppEdge("object_tracker", "PTZ_CONTROL", 100, 28, 100, "PTZ_PARAMS", Tuple.DOWN, AppEdge.ACTUATOR); // adding edge from Object Tracker to PTZ CONTROL (actuator) carrying tuples of type PTZ_PARAMS
-		
+		application.addAppEdge("TUPLE_SENSOR_TO_OPERATOR_1", "operator_1", 1000, 20000, 
+				"TUPLE_SENSOR_TO_OPERATOR_1", Tuple.UP, AppEdge.SENSOR); // adding edge from TUPLE_SENSOR_TO_OPERATOR_1 (sensor) to Motion Detector module carrying tuples of type TUPLE_SENSOR_TO_OPERATOR_1
+		application.addAppEdge("operator_1", "operator_2", 2000, 2000, 
+				"TUPLE_OPERATOR1_TO_OPERATOR2", Tuple.UP, AppEdge.MODULE); // adding edge from Motion Detector to Object Detector module carrying tuples of type TUPLE_OPERATOR1_TO_OPERATOR2
+		application.addAppEdge("operator_2", "operator_3", 500, 2000,
+				"TUPLE_OPERATOR2_TO_OPERATOR3", Tuple.UP, AppEdge.MODULE); // adding edge from Object Detector to User Interface module carrying tuples of type TUPLE_OPERATOR2_TO_OPERATOR3a
+		application.addAppEdge("operator_3", "ACTUATOR", 100, 28, 100, 
+				"TUPLE_OPERATOR3_TO_ACTUATOR", Tuple.DOWN, AppEdge.ACTUATOR); // adding edge from Object Tracker to PTZ CONTROL (actuator) carrying tuples of type TUPLE_OPERATOR3_TO_ACTUATOR
 		
 		// Defining the input-output relationships (represented by selectivity) of the application modules. 
-		application.addTupleMapping("motion_detector", "CAMERA", "MOTION_VIDEO_STREAM", new FractionalSelectivity(1.0)); // 1.0 tuples of type MOTION_VIDEO_STREAM are emitted by Motion Detector module per incoming tuple of type CAMERA
-		application.addTupleMapping("operator_1", "MOTION_VIDEO_STREAM", "OBJECT_LOCATION", new FractionalSelectivity(1.0)); // 1.0 tuples of type OBJECT_LOCATION are emitted by Object Detector module per incoming tuple of type MOTION_VIDEO_STREAM
-		application.addTupleMapping("operator_1", "MOTION_VIDEO_STREAM", "DETECTED_OBJECT", new FractionalSelectivity(0.05)); // 0.05 tuples of type MOTION_VIDEO_STREAM are emitted by Object Detector module per incoming tuple of type MOTION_VIDEO_STREAM
+		application.addTupleMapping("operator_1", "TUPLE_SENSOR_TO_OPERATOR_1", "TUPLE_OPERATOR1_TO_OPERATOR2", 
+				new FractionalSelectivity(1.0)); // 1.0 tuples of type TUPLE_OPERATOR1_TO_OPERATOR2 are emitted by Motion Detector module per incoming tuple of type TUPLE_SENSOR_TO_OPERATOR_1
+		application.addTupleMapping("operator_2", "TUPLE_OPERATOR1_TO_OPERATOR2", "TUPLE_OPERATOR2_TO_OPERATOR3", 
+				new FractionalSelectivity(1.0)); // 1.0 tuples of type TUPLE_OPERATOR2_TO_OPERATOR3b are emitted by Object Detector module per incoming tuple of type TUPLE_OPERATOR1_TO_OPERATOR2
 	
-		/*
-		 * Defining application loops (maybe incomplete loops) to monitor the latency of. 
-		 * Here, we add two loops for monitoring : Motion Detector -> Object Detector -> Object Tracker and Object Tracker -> PTZ Control
-		 */
-		final AppLoop loop1 = new AppLoop(new ArrayList<String>(){{add("motion_detector");add("operator_1");add("object_tracker");}});
-		final AppLoop loop2 = new AppLoop(new ArrayList<String>(){{add("object_tracker");add("PTZ_CONTROL");}});
-		List<AppLoop> loops = new ArrayList<AppLoop>(){{add(loop1);add(loop2);}};
+		
+		// Defining application loops
+		final AppLoop loop1 = new AppLoop(new ArrayList<String>(){
+			{add("operator_1");
+			add("operator_2");
+			add("operator_3");}
+			});
+		List<AppLoop> loops = new ArrayList<AppLoop>(){{
+			add(loop1);
+			}
+		};
 		
 		application.setLoops(loops);
 		return application;

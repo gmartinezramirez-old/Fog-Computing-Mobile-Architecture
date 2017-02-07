@@ -110,7 +110,8 @@ public class Controller extends SimEntity{
 	}
 	
 	private void printNetworkUsageDetails() {
-		System.out.println("Total network usage = "+NetworkUsageMonitor.getNetworkUsage()/Config.MAX_SIMULATION_TIME);		
+		System.out.println("Total network usage = "
+				+NetworkUsageMonitor.getNetworkUsage()/Config.MAX_SIMULATION_TIME);		
 	}
 
 	private FogDevice getCloud(){
@@ -161,6 +162,11 @@ public class Controller extends SimEntity{
 			System.out.println(getStringForLoopId(loopId) + " ---> "+(average/count));*/
 			System.out.println(getStringForLoopId(loopId) + " ---> "+TimeKeeper.getInstance().getLoopIdToCurrentAverage().get(loopId));
 		}
+		printCpuExecutionDelayDetails();
+
+	}
+
+	protected void printCpuExecutionDelayDetails() {
 		System.out.println("=========================================");
 		System.out.println("TUPLE CPU EXECUTION DELAY");
 		System.out.println("=========================================");
@@ -169,9 +175,9 @@ public class Controller extends SimEntity{
 			System.out.println(tupleType + " ---> "+TimeKeeper.getInstance().getTupleTypeToAverageCpuTime().get(tupleType));
 		}
 		
-		System.out.println("=========================================");
+		System.out.println("=========================================");		
 	}
-
+	
 	protected void manageResources(){
 		send(getId(), Config.RESOURCE_MANAGE_INTERVAL, FogEvents.CONTROLLER_RESOURCE_MANAGE);
 	}
