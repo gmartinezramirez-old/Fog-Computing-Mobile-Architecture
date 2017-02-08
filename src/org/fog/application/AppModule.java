@@ -14,7 +14,7 @@ import org.fog.utils.FogUtils;
 
 /**
  * Class representing an application module, the processing elements of the application model of iFogSim.
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public class AppModule extends PowerVm{

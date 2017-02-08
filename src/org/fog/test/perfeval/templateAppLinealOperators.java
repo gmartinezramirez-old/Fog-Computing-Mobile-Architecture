@@ -49,6 +49,11 @@ public class templateAppLinealOperators {
 	
 	private static boolean isOnlyCloud = false;
 	private static boolean isOnlyEdge = false;
+	private static boolean isHierarchical = false;
+	
+	private static boolean isHighRange = false;
+	private static boolean isMediumRange = false;
+	private static boolean isLowRange = false;
 	//private static boolean isOnlyCloud = true;
 	
 	public static void main(String[] args) {
@@ -142,6 +147,16 @@ public class templateAppLinealOperators {
 	}
 	
 	private static FogDevice addDevices(String id, int userId, String appId, int parentId){
+		// TODO: Separate by term
+		//High-term
+		//FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
+		//		10000, 10000, 3, 0, 87.53, 82.44);
+		//Mid-term
+		//FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
+		//		10000, 10000, 3, 0, 87.53, 82.44);
+		//Low-term
+		//FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
+		//		10000, 10000, 3, 0, 87.53, 82.44);
 		FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
 				10000, 10000, 3, 0, 87.53, 82.44);
 		mobileDevice.setParentId(parentId);
@@ -150,7 +165,7 @@ public class templateAppLinealOperators {
 		Actuator actuatorDevice = new Actuator("actuator-"+id, userId, appId, "ACTUATOR");
 		actuators.add(actuatorDevice);
 		sensor.setGatewayDeviceId(mobileDevice.getId());
-		sensor.setLatency(1.0);  // latency of connection between mobileDevice (sensor) and the parent Device is 1 ms
+		sensor.setLatency(1.0);  // latency of connection between sensor and the parent Device is 1 ms
 		actuatorDevice.setGatewayDeviceId(mobileDevice.getId());
 		actuatorDevice.setLatency(1.0);  // latency of connection between Actuator and the parent Device is 1 ms
 		return mobileDevice;

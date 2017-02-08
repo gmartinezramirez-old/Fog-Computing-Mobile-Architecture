@@ -2,7 +2,7 @@ package org.fog.application.selectivity;
 
 /**
  * Generates an output tuple for an incoming input tuple with a fixed probability
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public class FractionalSelectivity implements SelectivityModel{

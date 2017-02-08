@@ -20,7 +20,7 @@ import org.fog.utils.JsonToTopology;
 
 /**
  * Simulation setup for EEG Beam Tractor Game extracting physical topology 
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public class CleanFromJson {

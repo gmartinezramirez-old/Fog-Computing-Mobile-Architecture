@@ -6,7 +6,7 @@ import org.cloudbus.cloudsim.core.CloudSim;
  * Generates an output tuple for every input tuple according to a bursty model.
  * During high burst period, all input tuples result in an output tuple.
  * During low burst period, no input tuples result in an output tuple.
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public class BurstySelectivity implements SelectivityModel{

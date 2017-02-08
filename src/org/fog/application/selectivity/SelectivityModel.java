@@ -2,7 +2,7 @@ package org.fog.application.selectivity;
 
 /**
  * Class representing the input-output relationships of application modules.
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public interface SelectivityModel {

@@ -15,7 +15,7 @@ import org.fog.utils.GeoCoverage;
 
 /**
  * Class represents an application in the Distributed Dataflow Model.
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public class Application {

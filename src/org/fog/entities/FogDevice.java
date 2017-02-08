@@ -433,7 +433,7 @@ public class FogDevice extends PowerDatacenter {
 
 		/** Remove completed VMs **/
 		/**
-		 * Change made by HARSHIT GUPTA
+		 * Change made by Gonzalo Martinez
 		 */
 		/*for (PowerHost host : this.<PowerHost> getHostList()) {
 			for (Vm vm : host.getCompletedVms()) {

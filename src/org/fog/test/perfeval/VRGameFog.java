@@ -37,7 +37,7 @@ import org.fog.utils.distribution.DeterministicDistribution;
 
 /**
  * Simulation setup for case study 1 - EEG Beam Tractor Game
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public class VRGameFog {
