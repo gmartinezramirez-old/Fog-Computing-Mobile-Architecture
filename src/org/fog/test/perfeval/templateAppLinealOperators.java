@@ -48,13 +48,12 @@ public class templateAppLinealOperators {
 	static int numOfDevicesPerSTB = 4;
 	
 	private static boolean isOnlyCloud = false;
-	private static boolean isOnlyEdge = false;
-	private static boolean isHierarchical = false;
+	private static boolean isHierarchicalFog = false;
+	private static boolean isHierarchicalFogBalancingCloud = false;
 	
-	private static boolean isHighRange = false;
-	private static boolean isMediumRange = false;
-	private static boolean isLowRange = false;
-	//private static boolean isOnlyCloud = true;
+	private static boolean isHighRangeTypeDevice = false;
+	private static boolean isMidRangeTypeDevice = false;
+	private static boolean isLowRangeRangeTypeDevice = false;
 	
 	public static void main(String[] args) {
 
@@ -89,7 +88,7 @@ public class templateAppLinealOperators {
 			if(isOnlyCloud){
 				moduleMapping.addModuleToDevice("operator_1", "cloud");
 				moduleMapping.addModuleToDevice("operator_2", "cloud");
-				//moduleMapping.addModuleToDevice("operator_3", "cloud");
+				moduleMapping.addModuleToDevice("operator_3", "cloud");
 			}
 			
 			controller = new Controller("master-controller", fogDevices, sensors, 
@@ -131,7 +130,7 @@ public class templateAppLinealOperators {
 		}
 	}
 
-	private static FogDevice addSTB(String id, int userId, String appId, int parentId){
+	private static FogDevice addSTB(String id, int userId, String appId, int parentId) {
 		FogDevice STB = createFogDevice("STB-"+id, 2800, 4000, 
 				10000, 10000, 1, 0.0, 107.339, 83.4333);
 		fogDevices.add(STB);
@@ -146,29 +145,48 @@ public class templateAppLinealOperators {
 		return STB;
 	}
 	
-	private static FogDevice addDevices(String id, int userId, String appId, int parentId){
-		// TODO: Separate by term
-		//High-term
-		//FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
-		//		10000, 10000, 3, 0, 87.53, 82.44);
-		//Mid-term
-		//FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
-		//		10000, 10000, 3, 0, 87.53, 82.44);
-		//Low-term
-		//FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
-		//		10000, 10000, 3, 0, 87.53, 82.44);
-		FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
-				10000, 10000, 3, 0, 87.53, 82.44);
-		mobileDevice.setParentId(parentId);
-		Sensor sensor = new Sensor("sensor-"+id, "TUPLE_SENSOR_TO_OPERATOR_1", userId, appId, new DeterministicDistribution(5)); // inter-transmission time of mobileDevice (sensor) follows a deterministic distribution
-		sensors.add(sensor);
-		Actuator actuatorDevice = new Actuator("actuator-"+id, userId, appId, "ACTUATOR");
-		actuators.add(actuatorDevice);
-		sensor.setGatewayDeviceId(mobileDevice.getId());
-		sensor.setLatency(1.0);  // latency of connection between sensor and the parent Device is 1 ms
-		actuatorDevice.setGatewayDeviceId(mobileDevice.getId());
-		actuatorDevice.setLatency(1.0);  // latency of connection between Actuator and the parent Device is 1 ms
-		return mobileDevice;
+	private static FogDevice addDevices(String id, int userId, String appId, int parentId) {
+
+		if(isHighRangeTypeDevice) {
+			FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
+					10000, 10000, 3, 0, 87.53, 82.44);
+			mobileDevice.setParentId(parentId);
+			Sensor sensor = new Sensor("sensor-"+id, "TUPLE_SENSOR_TO_OPERATOR_1", userId, appId, new DeterministicDistribution(5)); // inter-transmission time of mobileDevice (sensor) follows a deterministic distribution
+			sensors.add(sensor);
+			Actuator actuatorDevice = new Actuator("actuator-"+id, userId, appId, "ACTUATOR");
+			actuators.add(actuatorDevice);
+			sensor.setGatewayDeviceId(mobileDevice.getId());
+			sensor.setLatency(1.0);  // latency of connection between sensor and the parent Device is 1 ms
+			actuatorDevice.setGatewayDeviceId(mobileDevice.getId());
+			actuatorDevice.setLatency(1.0);  // latency of connection between Actuator and the parent Device is 1 ms
+			return mobileDevice;
+		} else if(isMidRangeTypeDevice) {
+			FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
+					10000, 10000, 3, 0, 87.53, 82.44);
+			mobileDevice.setParentId(parentId);
+			Sensor sensor = new Sensor("sensor-"+id, "TUPLE_SENSOR_TO_OPERATOR_1", userId, appId, new DeterministicDistribution(5)); // inter-transmission time of mobileDevice (sensor) follows a deterministic distribution
+			sensors.add(sensor);
+			Actuator actuatorDevice = new Actuator("actuator-"+id, userId, appId, "ACTUATOR");
+			actuators.add(actuatorDevice);
+			sensor.setGatewayDeviceId(mobileDevice.getId());
+			sensor.setLatency(1.0);  // latency of connection between sensor and the parent Device is 1 ms
+			actuatorDevice.setGatewayDeviceId(mobileDevice.getId());
+			actuatorDevice.setLatency(1.0);  // latency of connection between Actuator and the parent Device is 1 ms
+			return mobileDevice;
+		} else {
+			FogDevice mobileDevice = createFogDevice("MobileDevice-"+id, 500, 1000, 
+					10000, 10000, 3, 0, 87.53, 82.44);
+			mobileDevice.setParentId(parentId);
+			Sensor sensor = new Sensor("sensor-"+id, "TUPLE_SENSOR_TO_OPERATOR_1", userId, appId, new DeterministicDistribution(5)); // inter-transmission time of mobileDevice (sensor) follows a deterministic distribution
+			sensors.add(sensor);
+			Actuator actuatorDevice = new Actuator("actuator-"+id, userId, appId, "ACTUATOR");
+			actuators.add(actuatorDevice);
+			sensor.setGatewayDeviceId(mobileDevice.getId());
+			sensor.setLatency(1.0);  // latency of connection between sensor and the parent Device is 1 ms
+			actuatorDevice.setGatewayDeviceId(mobileDevice.getId());
+			actuatorDevice.setLatency(1.0);  // latency of connection between Actuator and the parent Device is 1 ms
+			return mobileDevice;			
+		}
 	}
 	
 	/**
