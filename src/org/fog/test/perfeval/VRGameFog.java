@@ -36,7 +36,7 @@ import org.fog.utils.TimeKeeper;
 import org.fog.utils.distribution.DeterministicDistribution;
 
 /**
- * Simulation setup for case study 1 - EEG Beam Tractor Game
+ * Simulation setup for EEG Beam Tractor Game
  * @author Gonzalo Martinez
  *
  */

@@ -89,6 +89,10 @@ public class templateAppLinealOperators {
 				moduleMapping.addModuleToDevice("operator_1", "cloud");
 				moduleMapping.addModuleToDevice("operator_2", "cloud");
 				moduleMapping.addModuleToDevice("operator_3", "cloud");
+			} else if (isHierarchicalFog){
+				moduleMapping.addModuleToDevice("operator_1", "cloud");
+			} else if (isHierarchicalFogBalancingCloud) {
+				moduleMapping.addModuleToDevice("operator_1", "cloud");
 			}
 			
 			controller = new Controller("master-controller", fogDevices, sensors, 
