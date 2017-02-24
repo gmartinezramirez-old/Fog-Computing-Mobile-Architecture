@@ -37,7 +37,7 @@ import org.fog.utils.distribution.DeterministicDistribution;
 
 /**
  * Simulation setup for case study 2 - Intelligent Surveillance
- * @author Harshit Gupta
+ * @author Gonzalo Martinez
  *
  */
 public class DCNSFog {
