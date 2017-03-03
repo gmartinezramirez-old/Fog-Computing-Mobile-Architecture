@@ -40,14 +40,19 @@ import org.fog.utils.distribution.DeterministicDistribution;
  * @author Gonzalo Martinez
  *
  */
-public class DCNSFog {
+public class DCNSFogCloudHigh {
 	static List<FogDevice> fogDevices = new ArrayList<FogDevice>();
 	static List<Sensor> sensors = new ArrayList<Sensor>();
 	static List<Actuator> actuators = new ArrayList<Actuator>();
-	static int numOfAreas = 128;
-	static int numOfCamerasPerArea = 1;
+	static int numOfAreas = 16;
+	static int numOfCamerasPerArea = 4;
 	
-	private static boolean CLOUD = true;
+	private static boolean CLOUD = false;
+	
+	//private static boolean isOnlyCloud = false;
+	
+	//private static boolean isFog = false;
+	//private static boolean isHierarchicalFogBalancingCloud = true;
 	
 	public static void main(String[] args) {
 
@@ -73,21 +78,58 @@ public class DCNSFog {
 			Controller controller = null;
 			
 			ModuleMapping moduleMapping = ModuleMapping.createModuleMapping(); // initializing a module mapping
+		
+			
+			// Mapping modules
 			for(FogDevice device : fogDevices){
 				if(device.getName().startsWith("m")){ // names of all Smart Cameras start with 'm' 
 					moduleMapping.addModuleToDevice("motion_detector", device.getName());  // fixing 1 instance of the Motion Detector module to each Smart Camera
 				}
 			}
+            //
 			
 			// fixing instances of User Interface module in the Cloud
-			moduleMapping.addModuleToDevice("user_interface", "cloud"); 
+			//moduleMapping.addModuleToDevice("user_interface", "cloud"); 
 			
 			if(CLOUD) {
 				// if the mode of deployment is cloud-based
 				moduleMapping.addModuleToDevice("object_detector", "cloud"); // placing all instances of Object Detector module in the Cloud
 				moduleMapping.addModuleToDevice("object_tracker", "cloud"); // placing all instances of Object Tracker module in the Cloud
 			}
-
+			
+			/*
+			if(isOnlyCloud) {
+				moduleMapping.addModuleToDevice("user_interface", "cloud"); 
+				moduleMapping.addModuleToDevice("object_detector", "cloud"); 
+				moduleMapping.addModuleToDevice("object_tracker", "cloud");
+			    moduleMapping.addModuleToDevice("motion_detector", "cloud");
+			} 
+			*/
+			/*
+			else if (isFog) { // Fog (Gateway) - Edge (Smart Cameras)
+				for(FogDevice device : fogDevices){
+					if(device.getName().startsWith("d")){ // names of all Area Gateway start with 'd' 
+						moduleMapping.addModuleToDevice("motion_detector", device.getName());
+						moduleMapping.addModuleToDevice("user_interface", device.getName()); 
+					} else if (device.getName().startsWith("m")){ // names of all Smart Cameras start with 'm' 
+						moduleMapping.addModuleToDevice("object_detector", device.getName());
+						moduleMapping.addModuleToDevice("object_tracker", device.getName());
+					}
+				}
+			} else if (isHierarchicalFogBalancingCloud) { // Cloud - Fog (Gateway) - Edge (Smart Cameras)
+				for(FogDevice device : fogDevices) {
+					if(device.getName().startsWith("d")) { // names of all Area Gateway start with 'd' 
+						moduleMapping.addModuleToDevice("motion_detector", device.getName());
+						//moduleMapping.addModuleToDevice("user_interface", device.getName()); 
+					} else if (device.getName().startsWith("m")) { // names of all Smart Cameras start with 'm' 
+						moduleMapping.addModuleToDevice("object_detector", device.getName());
+						//moduleMapping.addModuleToDevice("object_tracker", device.getName());
+					}
+				}
+				moduleMapping.addModuleToDevice("user_interface", "cloud"); 
+				moduleMapping.addModuleToDevice("object_tracker", "cloud");
+			}
+			*/
 			controller = new Controller("master-controller", fogDevices, sensors, 
 					actuators);
 			
@@ -148,13 +190,14 @@ public class DCNSFog {
 	// NOW: Low
 	private static FogDevice addCamera(String id, int userId, String appId, int parentId){
 		// HIGH
-		//FogDevice camera = createFogDevice("m-"+id, 2300, 4000, 10000, 10000, 3, 0, 99.45, 83.10);
-			
+		FogDevice camera = createFogDevice("m-"+id, 2300, 4000, 10000, 10000, 3, 0, 99.45, 83.10);
+		
 		// MEDIUM
 		//FogDevice camera = createFogDevice("m-"+id, 2000, 2000, 10000, 10000, 3, 0, 99.5, 82.95);
-			
+		
 		// LOW
-		FogDevice camera = createFogDevice("m-"+id, 1000, 1000, 10000, 10000, 3, 0, 82.77, 82.7);
+		//FogDevice camera = createFogDevice("m-"+id, 1000, 1000, 10000, 10000, 3, 0, 82.77, 82.7);
+		
 		camera.setParentId(parentId);
 		Sensor sensor = new Sensor("s-"+id, "CAMERA", userId, appId, new DeterministicDistribution(5)); // inter-transmission time of camera (sensor) follows a deterministic distribution
 		sensors.add(sensor);
